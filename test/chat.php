@@ -5,6 +5,7 @@
 // var_dump($byte->getByte());
 
 // exit();
+set_time_limit(0);
 function msg_base64_encode(string $str)
 {
     $base64Str = base64_encode($str);
@@ -317,23 +318,30 @@ class SocketServer
         $responseMsgStr = '';
         $i = 0;
         while (true) {
+            $this->log("No.$i start");
             $stime = microtime(true);
 
             $this->getPingTimer()->run();
+            $this->log("No.$i run line".__LINE__);
 
             do {
                 if ( ($responseMsgStr = socket_read($this->socket, 8192)) === FALSE) {
                     $this->getPingTimer()->cancel();
                     return;
                 }
-                var_dump($responseMsgStr);
+                var_dump($responseMsgStr."\n");
             } while ($this->status == self::STATE_STOP);
+
+            $this->log("No.$i run line".__LINE__);
             
             if($responseMsgStr)
                 $this->getChatBufferObj()->addBuffer($responseMsgStr);
+            
+            $this->log("No.$i run line".__LINE__);            
 
             $responseMsgStr = $this->getChatBufferObj()->read();
-
+            $this->log("No.$i run line".__LINE__);
+            
             if ($responseMsgStr) {
                 $responseMsg = $this->decodePacket($responseMsgStr);
                 if ($this->callBack) {
@@ -345,11 +353,13 @@ class SocketServer
                     }
                 }
             }
+            $this->log("No.$i run line".__LINE__);
+            $this->log("No.$i end");            
             $etime = microtime(true);
             $i++;
-            var_dump("real run time is .".($etime - $stime));
+            // var_dump("real run time is .".($etime - $stime));
             usleep(self::THREAD_SLEEP_MICROSECOND);
-            var_dump($i);
+            // var_dump($i);
         }
     }
 
@@ -443,3 +453,5 @@ class SocketServer
         echo $msg, "\n";
     }
 }
+
+
