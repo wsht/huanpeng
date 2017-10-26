@@ -120,7 +120,7 @@ interface SocketCallBack
     public function onLoginSucceed();
 }
 
-class TimerTask
+class TimerTask extends Thread
 {
     private $task;
 
@@ -129,7 +129,6 @@ class TimerTask
 
     public function init($task, $interval)
     {
-        var_dump($task);
         $this->task = $task;
         $this->interval = $interval;
         $this->runtime = time();
@@ -137,8 +136,8 @@ class TimerTask
 
     public function run()
     {   
-        var_dump(time());
-        if($this->task && time() >= $this->runtime + $this->interval)
+        sleep($this->interval);
+        if($this->task)
         {
             echo "task run at ".time()."\n last runtime={$this->runtime}\n interval={$this->interval}\n";
             $this->runtime = time();            
@@ -151,6 +150,7 @@ class TimerTask
         $this->task = null;
         $this->interval = null;
         $this->runtime = null;
+        $this->kill();
     }
 }
 
