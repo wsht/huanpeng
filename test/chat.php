@@ -5,6 +5,12 @@
 // var_dump($byte->getByte());
 
 // exit();
+/**
+ * 注意 线程时通过序列化来实现的，那么资源类是无法传递的，但是父进程可以访问子线程方法和属性
+ * 根据需求 编写socket 客户端程序，只能将socket作为最底层的线程方式来实现，通过上层调用
+ * 来实现需求
+ */
+
 set_time_limit(0);
 function msg_base64_encode(string $str)
 {

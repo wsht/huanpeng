@@ -135,6 +135,8 @@ class ServerTest2
 {
     public  $i;
 
+    public $socket;
+
     private $timerTask;
 
     public function setTimerTask($timerTask)
@@ -154,6 +156,10 @@ class ServerTest2
 
     public function run()
     {
+        /**
+        *notice: php线程创建是通过序列化进行的，所以socket资源时不能被访问的
+        */
+        $this->socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
         // $callab = new HPCallAble("task", [], $this);
         $this->getTimerTask()->init($this);
         $this->getTimerTask()->start();
@@ -163,6 +169,7 @@ class ServerTest2
 
     public function task()
     {
+        var_dump($this->socket);
         echo $this->i."\n";
         $this->i++;
     }
