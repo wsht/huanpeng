@@ -105,7 +105,7 @@ class ServerTest
 class TimerTask2 extends Thread
 {
     private $callab;
-
+    private $socket;
     private function setCallAb($callab)
     {
         $this->callab = $callab;
@@ -116,16 +116,18 @@ class TimerTask2 extends Thread
         return $this->callab;
     }
 
-    public function init( $callab)
+    public function init( $callab, $socket)
     {
         $this->setCallAb($callab);
+        $this->socket = $socket;
     }
 
     public function run()
     {
         while(true)
         {
-            $this->getCallAb()->task();
+            var_dump($this->socket);
+            // $this->getCallAb()->task();
             sleep(1);
         }
     }
@@ -161,7 +163,7 @@ class ServerTest2
         */
         $this->socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
         // $callab = new HPCallAble("task", [], $this);
-        $this->getTimerTask()->init($this);
+        $this->getTimerTask()->init($this, $this->socket);
         $this->getTimerTask()->start();
 
         echo "end\n";

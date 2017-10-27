@@ -142,6 +142,10 @@ class HPCallAble
     public function run()
     {
         //todo undefind call function or invaild 
+        var_dump("HPCALLABLE params is \n");
+        var_dump($this->params);
+        var_dump($this->callObj->socket);
+        var_dump("\n");
         if($this->callObj)
         {
             return call_user_func_array([$this->callObj, $this->callFunc], $this->params);
@@ -153,38 +157,80 @@ class HPCallAble
     }
 }
 
+// class TimerTask extends Thread
+// {
+//     private $callAble;
+//     private $runtime;
+//     private $interval;
+
+//     private function setCallAble(HPCallAble $callAble)
+//     {
+//         $this->callAble = $callAble;
+//     }
+
+//     private function getCallAble():HPCallAble
+//     {
+//         return $this->callAble;
+//     }
+
+//     public function init(HPCallAble $callAble, $interval)
+//     {
+//         $this->callAble = $callAble;
+//         $this->interval = $interval;
+//         $this->runtime = time();
+//     }
+
+//     public function run()
+//     {   
+//         sleep($this->interval);
+//         if($this->callAble)
+//         {
+//             echo "task run at ".time()."\n last runtime={$this->runtime}\n interval={$this->interval}\n";
+//             $this->runtime = time();            
+//             $this->getCallAble()->run();
+//         }
+//     }
+
+//     public function cancel()
+//     {
+//         $this->task = null;
+//         $this->interval = null;
+//         $this->runtime = null;
+//         $this->kill();
+//     }
+// }
+
 class TimerTask extends Thread
 {
-    private $callAble;
     private $runtime;
     private $interval;
-
-    private function setCallAble(HPCallAble $callAble)
+    private $obj;
+    private $socket;
+    public function init($obj, $interval, $socket)
     {
-        $this->callAble = $callAble;
-    }
-
-    private function getCallAble():HPCallAble
-    {
-        return $this->callAble;
-    }
-
-    public function init(HPCallAble $callAble, $interval)
-    {
-        $this->callAble = $callAble;
+        $this->obj = $obj;
         $this->interval = $interval;
         $this->runtime = time();
+        var_dump("Timer task init the obj is\n");
+        var_dump($this->obj->socket);
+        var_dump("\n\n");
+
+        var_dump("Timer task init the params socket is \n");
+        var_dump($socket);
+        $this->socket = $socket;
     }
 
     public function run()
-    {   
-        sleep($this->interval);
-        if($this->callAble)
+    {
+        while(true)
         {
-            echo "task run at ".time()."\n last runtime={$this->runtime}\n interval={$this->interval}\n";
-            $this->runtime = time();            
-            $this->getCallAble()->run();
+            sleep($this->interval);
+            if ($this->obj){
+                $this->runtime = time();
+                $this->obj->timerTask($this->socket);
+            }
         }
+        
     }
 
     public function cancel()
@@ -232,7 +278,7 @@ class SocketServer
     const STAT_START = 2;
 
     /* share the $socket to thread*/
-    public static $socket;
+    public  $socket;
     private $ip;
     private $port;
     private $uid;
@@ -283,7 +329,7 @@ class SocketServer
 
     public static function getSocket()
     {
-        return static::$socket;
+        return $this->socekt;
     }
 
     private function onError(int $errno)
@@ -318,7 +364,7 @@ class SocketServer
             $this->log($e->getCode()."".$e->getMessage());
         }
     
-        socket_close(SocketServer::$socket);
+        socket_close($this->socket);
     }
 
     public function login(string $ip, string $port, string $uid, string $encpass, string $roomid )
@@ -334,7 +380,7 @@ class SocketServer
         $this->status = self::STAT_CONNECTING;
         $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
         // self::setSocket($socket);
-        SocketServer::$socket = $socket;
+        $this->socket = $socket;
 
         $this->run();
     }
@@ -342,7 +388,7 @@ class SocketServer
     private function connect()
     {
         $this->stopFlags = false;
-        $result = socket_connect(SocketServer::$socket, $this->ip, $this->port);
+        $result = socket_connect($this->socket, $this->ip, $this->port);
         if (!$result) {
             throw new Exception("Socket connect failed", 1);
         }
@@ -352,11 +398,14 @@ class SocketServer
     {
         $this->stopFlags = true;
         $this->mylog("APP call disconnect");
-        socket_close(SocketServer::$socket);
+        socket_close($this->socket);
     }
 
     private function writePacket($buffer, $socket=null)
-    {   $socket ?? self::$socket;
+    {   
+        // $socket ?? $this->socket;
+        $socket = $socket ? $socket : $this->socket;
+        
         socket_write($socket, $buffer);
     }
 
@@ -364,33 +413,26 @@ class SocketServer
     {
         //设置定时任务 每10秒钟执行一次
 
-        $callAble = new HPCallAble("timerTask",[SocketServer::$socket], $this);
-        $this->getPingTimer()->init($callAble, 2);
+        // $callAble = new HPCallAble("timerTask",[$this->socket], $this);
+        $this->getPingTimer()->init($this, 10, $this->socket);
         $this->getPingTimer()->start();
         $responseMsgStr = '';
         $i = 0;
 
-        var_dump(SocketServer::$socket);
         while (true) {
-            // $this->log("No.$i start");
             $stime = microtime(true);
-            // $this->log("No.$i run line".__LINE__);
             do {
-                if ( ($responseMsgStr = socket_read(SocketServer::$socket, 8192)) === FALSE) {
+                if ( ($responseMsgStr = socket_read($this->socket, 8192)) === FALSE) {
                     $this->getPingTimer()->cancel();
                     return;
                 }
             } while ($this->status == self::STATE_STOP);
 
-            // $this->log("No.$i run line".__LINE__);
             
             if($responseMsgStr)
                 $this->getChatBufferObj()->addBuffer($responseMsgStr);
             
-            // $this->log("No.$i run line".__LINE__);            
-
             $responseMsgStr = $this->getChatBufferObj()->read();
-            // $this->log("No.$i run line".__LINE__);
             
             if ($responseMsgStr) {
                 var_dump($responseMsgStr);
@@ -404,20 +446,14 @@ class SocketServer
                     }
                 }
             }
-            // $this->log("No.$i run line".__LINE__);
-            // $this->log("No.$i end");            
             $etime = microtime(true);
             $i++;
-            // var_dump("real run time is .".($etime - $stime));
             usleep(self::THREAD_SLEEP_MICROSECOND);
-            // var_dump($i);
         }
     }
 
     public function timerTask($socket=NULL)
     {
-        echo "run ".__FUNCTION__."\n";
-        var_dump($socket);
         $this->sendPacketMessage('noop', $socket);
     }
 
