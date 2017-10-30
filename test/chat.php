@@ -499,8 +499,8 @@ class SocketServer
                 $message->setCommand(SocketResponseMessage::COMMAND_TYPE_RECIEVEMESSAGE);
             }
 
-            if ($msg_type[1] == "command=result") {
-                $messge->setCommand(SocketResponseMessage::COMMAND_TYPE_RESULT);
+            if ($msg_arr[1] == "command=result") {
+                $message->setCommand(SocketResponseMessage::COMMAND_TYPE_RESULT);
             }
 
             return $message;

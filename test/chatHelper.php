@@ -81,15 +81,15 @@ class ChatHelper implements SocketCallBack
     }
 }
 
-$address = "122.70.146.49";
-$port = "8082";
-$uid = 1930;
-$encpass = '9db06bcff9248837f86d1a6bcf41c9e7';
-$roomid = 3375;
+// $address = "122.70.146.49";
+// $port = "8082";
+// $uid = 1930;
+// $encpass = '9db06bcff9248837f86d1a6bcf41c9e7';
+// $roomid = 3375;
 
-$chatHelper = new ChatHelper();
+// $chatHelper = new ChatHelper();
 
-$chatHelper->setIp($address);
-$chatHelper->setPort($port);
+// $chatHelper->setIp($address);
+// $chatHelper->setPort($port);
 
-$chatHelper->login($uid, $encpass, $roomid);
+// $chatHelper->login($uid, $encpass, $roomid);
