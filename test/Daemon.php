@@ -151,11 +151,11 @@ class Daemon
         }
     }
 
-    public function setCallback($callback, $params)
-    {   
-        $this->callback = $callback;
-        $this->callbackParams = $params;
-    }
+    // public function setCallback($callback, $params)
+    // {   
+    //     $this->callback = $callback;
+    //     $this->callbackParams = $params;
+    // }
 
     public function addTask($func, $params)
     {
@@ -175,29 +175,37 @@ class Daemon
     {
         echo __FUNCTION__. "get callback \n";
         
-        if(!$this->callback || !$this->callbackParams)
+        print_r($this->child);
+        $pid = posix_getpid();
+        $callback = $this->callback; 
+        $callbackParams = $this->callbackParams;
+
+        if(!$callback || !$callbackParams)
         {
             exit();
         }
 
-        if(is_array($this->callback))
+        $this->child[$pid]['task']['func'] = $callback;
+        $this->child[$pid]['task']['params'] = $callbackParams;
+
+        if(is_array($callback))
         {
-            if(is_object($this->callback[0]))
+            if(is_object($callback[0]))
             {
-                return call_user_func_array($this->callback, $this->callbackParams);
+                return call_user_func_array($callback, $callbackParams);
             }
             else
             {
-                if(method_exists($this->callback[0], $this->callback[1]))
+                if(method_exists($callback[0], $callback[1]))
                 {
-                    $this->callback[0] = new $this->callback[0]();
+                    $callback[0] = new $callback[0]();
                 }
-                return call_user_func_array($this->callback, $this->callbackParams);                
+                return call_user_func_array($callback, $callbackParams);                
             }
         }
         else
         {
-            return call_user_func_array($this->callback, $this->callbackParams);            
+            return call_user_func_array($callback, $callbackParams);            
         }
     }
 
@@ -240,6 +248,10 @@ class Daemon
             case SIGCHLD:
                 while(($pid = pcntl_waitpid(-1, $status, WNOHANG)) > 0){
                     $this->workerCount--;
+                    $func = $this->child[$pid]['task']['func'];
+                    $params = $this->child[$pid]['task']['params'];
+                    if($func && $params)
+                        $this->addTask($func, $params);
                     unset($this->child[$pid]);
                     $this->log("The parent process receives the child:{$pid} process exit signal");
                 }
@@ -264,10 +276,13 @@ class Daemon
                 if($pid > 0)
                 {
                     $this->workerCount ++;
-                    $this->child[$pid] = date("Y-m-d H:i:s");
+                    $this->child[$pid]['stime'] = date("Y-m-d H:i:s");
                     $this->log("child pid : $pid starting");
                     $this->log("add the worker count is ".$this->workerCount);
-                    $this->getTask();
+                    $task = $this->getTask();
+                    $this->child[$pid]['task'] = $task;
+                    var_dump($this->child);
+                    
                     // continue;
                     // call_user_func_array($this->callback, $this->callbackParams);
                 }elseif($pid == 0)
@@ -283,7 +298,8 @@ class Daemon
                         exit();
                     }
                 }
-                usleep(100000);              
+                usleep(100000);            
+                // sleep(1);  
             }
             else
             {
