@@ -185,6 +185,7 @@ class Daemon
             exit();
         }
 
+        //将task  和$pid 绑定
         $this->child[$pid]['task']['func'] = $callback;
         $this->child[$pid]['task']['params'] = $callbackParams;
 
@@ -265,6 +266,7 @@ class Daemon
     public function run($count)
     {
         $this->startCount = $count;
+        $i=0;
         while(true)
         {
             $this->log("current start count is {$this->startCount}");
@@ -281,7 +283,7 @@ class Daemon
                     $this->log("add the worker count is ".$this->workerCount);
                     $task = $this->getTask();
                     $this->child[$pid]['task'] = $task;
-                    var_dump($this->child);
+                    // var_dump($this->child);
                     
                     // continue;
                     // call_user_func_array($this->callback, $this->callbackParams);
@@ -303,6 +305,26 @@ class Daemon
             }
             else
             {
+                if($i > 15)
+                {
+                    $rand = rand(2,3);
+                    $childcount = count($this->child);
+                    $num = intval($childcount/$rand);
+                    $pids = array_keys($this->child);
+
+                    echo "exit num is $num\n";
+                    echo "exit list is ".json_encode($pids)."\h";
+                    for($j = 0; $j < $num; $j++)
+                    {
+                        posix_kill($pids[$j], SIGTERM);
+                    }
+                    unset($pids);
+                    unset($rand);
+                    unset($childcount);
+                    unset($num);
+                    $i=0;
+                }
+                $i++;            
                 sleep(1);
             }
             pcntl_signal_dispatch();//尝试设置不同位置
@@ -337,14 +359,14 @@ $daemon = new Daemon();
 
 foreach($GLOBALS['uenc'] as $uid=> $info)
 {
-    $callback = [new UserLogin(), 'login'];
+    $callback = [UserLogin::class, 'login'];
     $params = [$uid, $info['encpass'], 3375,'122.70.146.49','8082'];
 
     $daemon->addTask($callback, $params);
 }
 
 echo "get user task\n";
-var_dump($daemon->task);
+// var_dump($daemon->task);
 // var_dump($daemon->getTask());
 
 // $daemon->runCallBackFunction();

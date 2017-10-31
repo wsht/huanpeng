@@ -142,10 +142,10 @@ class HPCallAble
     public function run()
     {
         //todo undefind call function or invaild 
-        var_dump("HPCALLABLE params is \n");
-        var_dump($this->params);
-        var_dump($this->callObj->socket);
-        var_dump("\n");
+        // var_dump("HPCALLABLE params is \n");
+        // var_dump($this->params);
+        // var_dump($this->callObj->socket);
+        // var_dump("\n");
         if($this->callObj)
         {
             return call_user_func_array([$this->callObj, $this->callFunc], $this->params);
@@ -200,6 +200,10 @@ class HPCallAble
 //     }
 // }
 
+
+/**
+ * 注意 thread 开启线程，php 将其序列化
+ */
 class TimerTask extends Thread
 {
     private $runtime;
@@ -211,18 +215,22 @@ class TimerTask extends Thread
         $this->obj = $obj;
         $this->interval = $interval;
         $this->runtime = time();
-        var_dump("Timer task init the obj is\n");
-        var_dump($this->obj->socket);
-        var_dump("\n\n");
-
-        var_dump("Timer task init the params socket is \n");
+        echo "timer task params obj task is";
+        var_dump($obj->socket);
         var_dump($socket);
+        // var_dump($obj->socket);
+        // var_dump("Timer task init the obj is\n");
+        var_dump($this->obj);
+        // var_dump("\n\n");
+
+        // var_dump("Timer task init the params socket is \n");
+        // var_dump($socket);
         $this->socket = $socket;
     }
 
     public function run()
     {
-        while(true)
+        while($this->interval)
         {
             sleep($this->interval);
             if ($this->obj){
@@ -238,7 +246,9 @@ class TimerTask extends Thread
         $this->task = null;
         $this->interval = null;
         $this->runtime = null;
-        $this->kill();
+        // $this->kill();
+        socket_close($this->socket);
+        exit();
     }
 }
 
@@ -422,7 +432,10 @@ class SocketServer
         while (true) {
             $stime = microtime(true);
             do {
-                if ( ($responseMsgStr = socket_read($this->socket, 8192)) === FALSE) {
+                
+                $responseMsgStr = socket_read($this->socket, 8192);
+                var_dump("back \$responseMsgStr is  ".json_encode($responseMsgStr));            
+                if ( $responseMsgStr === false) {
                     $this->getPingTimer()->cancel();
                     return;
                 }
@@ -435,7 +448,7 @@ class SocketServer
             $responseMsgStr = $this->getChatBufferObj()->read();
             
             if ($responseMsgStr) {
-                var_dump($responseMsgStr);
+                // var_dump($responseMsgStr);
                 $responseMsg = $this->decodePacket($responseMsgStr);
                 if ($this->callBack) {
                     if ($responseMsg->getContent() == "login.success") {
@@ -530,7 +543,7 @@ class SocketServer
         ];
 
         $buffer = $this->buildWriteBuffer($body);
-        var_dump($buffer);
+    
         $this->writePacket($buffer, $socket);
 
         return true;
