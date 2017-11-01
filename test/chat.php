@@ -202,7 +202,9 @@ class HPCallAble
 
 
 /**
- * 注意 thread 开启线程，php 将其序列化
+ * 注意 thread 开启线程，线程内部变量需要经过序列化，详情可以看serializeClass.php
+ * 所以其socket资源变为int(0) 注意，这里是父线程对子进程赋值的时候resource资源时被序列化的
+ * 但是 如果自线程是在自己内部赋值，那么对于其包含关系的类是可以访问其属性的(待测试)。
  */
 class TimerTask extends Thread
 {
@@ -222,6 +224,7 @@ class TimerTask extends Thread
         // var_dump("Timer task init the obj is\n");
         var_dump($this->obj);
         // var_dump("\n\n");
+        var_dump(class_implements($this->obj));
 
         // var_dump("Timer task init the params socket is \n");
         // var_dump($socket);
@@ -286,6 +289,8 @@ class SocketServer
     const STATE_STOP = 0;
     const STAT_CONNECTING = 1;
     const STAT_START = 2;
+
+    public static $test=1;
 
     /* share the $socket to thread*/
     public  $socket;
