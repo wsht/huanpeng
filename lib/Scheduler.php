@@ -1,5 +1,19 @@
 <?php
 
+class SystemCall{
+    protected $callback;
+    
+    public function __construct(callable $callback)
+    {
+        $this->callback = $callback;
+    }
+
+    public function __invoke(Task $task, Scheduler $scheduler)
+    {
+        $callback = $this->callback;
+        return $callback($task, $scheduler);
+    }
+}
 
 class Task{
     protected $taskId;
@@ -71,10 +85,19 @@ class Scheduler{
 
     public function run()
     {
+        // var_dump($this->taskQueue);
+    
         while(!$this->taskQueue->isEmpty())
         {
             $task = $this->taskQueue->dequeue();
-            $task->run();
+            // var_dump($task);
+            $retval = $task->run();
+
+            if($retval instanceof SystemCall)
+            {
+                $retval($task, $this);
+                continue;
+            }
 
             if($task->isFinished())
             {
@@ -84,38 +107,31 @@ class Scheduler{
             {
                 $this->schedule($task);
             }
+            // var_dump($this->taskQueue);
         }
     }
-}
 
-
-
-function task1()
-{
-    for($i=1; $i<=10; ++$i)
+    public function killTask($tid)
     {
-        echo "This is task 1 iteration $i.\n";
-        yield;
+      
+        if(!isset($this->taskMap[$tid]))
+        {
+            return false;
+        }
+
+        unset($this->taskMap[$tid]);
+
+        // This is a bit ugly and could be optimized so it does not have to walk the queue,
+        // but assuming that killing tasks is rather rare I won't bother with it now
+        foreach ($this->taskQueue as $i => $task) {
+            if ($task->getTaskId() === $tid) {
+                unset($this->taskQueue[$i]);
+                var_dump("stop $tid");
+                // exit();
+                // break;
+            }
+        }
+    
+        return true;
     }
 }
-
-function task2()
-{
-    for($i=1; $i<=5; ++$i)
-    {
-        echo "This is task 2 iteration $i.\n";
-        yield;      
-    }
-}
-
-$scheduler = new Scheduler();
-$scheduler->newTask(task1());
-$scheduler->newTask(task2());
-
-$scheduler->run();
-
-
-// $task = new Task();
-// var_dump($task);
-// 
-// $task->getTaskId();
